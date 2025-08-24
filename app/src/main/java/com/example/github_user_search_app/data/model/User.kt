@@ -9,8 +9,6 @@ data class User(
     @SerializedName("html_url") val htmlUrl: String,
     val type: String? = null,
     val score: Double? = null,
-    @SerializedName("site_admin") val siteAdmin: Boolean? = null,
-    // Detail fields (optional in search response)
     val name: String? = null,
     val company: String? = null,
     val blog: String? = null,
