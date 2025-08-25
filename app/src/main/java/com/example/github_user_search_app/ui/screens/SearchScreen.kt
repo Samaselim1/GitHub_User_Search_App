@@ -37,9 +37,9 @@ fun SearchScreen(
 
     val voisGradient = Brush.horizontalGradient(
         listOf(
-            Color(0xFFE60000), // VOIS red
-            Color(0xFFD81B60), // pink accent
-            Color(0xFF7B1FA2)  // purple accent
+            Color(0xFFE60000),
+            Color(0xFFD81B60),
+            Color(0xFF7B1FA2)
         )
     )
 

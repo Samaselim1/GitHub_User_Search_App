@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.ForkRight
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
@@ -39,7 +42,7 @@ import coil.compose.AsyncImage
 import com.example.github_user_search_app.viewmodel.UserDetailViewModel
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,12 +54,13 @@ fun UserDetailScreen(
 ) {
     val state = viewModel.state
     var showDetails by remember { mutableStateOf(false) }
+    var showRepositories by remember { mutableStateOf(false) }
 
     val voisGradient = Brush.verticalGradient(
         listOf(
-            Color(0xFFE60000), // VOIS red
-            Color(0xFFD81B60), // pink accent
-            Color(0xFF7B1FA2)  // purple accent
+            Color(0xFFE60000),
+            Color(0xFFD81B60),
+            Color(0xFF7B1FA2)
         )
     )
 
@@ -103,6 +107,9 @@ fun UserDetailScreen(
                 user = state.user!!,
                 showDetails = showDetails,
                 onToggleDetails = { showDetails = !showDetails },
+                showRepositories = showRepositories,
+                onToggleRepositories = { showRepositories = !showRepositories },
+                viewModel = viewModel,
                 paddingValues = paddingValues
             )
         }
@@ -173,6 +180,9 @@ private fun UserContent(
     user: com.example.github_user_search_app.data.model.User,
     showDetails: Boolean,
     onToggleDetails: () -> Unit,
+    showRepositories: Boolean,
+    onToggleRepositories: () -> Unit,
+    viewModel: UserDetailViewModel,
     paddingValues: PaddingValues
 ) {
     Column(
@@ -195,7 +205,11 @@ private fun UserContent(
         // Profile Details
         ProfileDetailsSection(user, showDetails, onToggleDetails)
 
-        GitHubLinksSection(user)
+        // Repositories Section
+        RepositoriesSection(user, showRepositories, onToggleRepositories, viewModel)
+
+        // Standalone GitHub Button
+        GitHubButton(user)
 
         Spacer(Modifier.height(32.dp))
     }
@@ -296,21 +310,21 @@ private fun StatsSection(user: com.example.github_user_search_app.data.model.Use
                 .padding(24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            EnhancedStatItem(Icons.Filled.Star, "${user.publicRepos ?: 0}", "Repositories")
+            StatItem(Icons.Filled.Star, "${user.publicRepos ?: 0}", "Repositories")
             Divider(
                 modifier = Modifier
                     .height(40.dp)
                     .width(1.dp),
                 color = Color(0xFFE60000).copy(alpha = 0.2f)
             )
-            EnhancedStatItem(Icons.Filled.People, "${user.followers ?: 0}", "Followers")
+            StatItem(Icons.Filled.People, "${user.followers ?: 0}", "Followers")
             Divider(
                 modifier = Modifier
                     .height(40.dp)
                     .width(1.dp),
                 color = Color(0xFFE60000).copy(alpha = 0.2f)
             )
-            EnhancedStatItem(Icons.Filled.PersonAdd, "${user.following ?: 0}", "Following")
+            StatItem(Icons.Filled.PersonAdd, "${user.following ?: 0}", "Following")
         }
     }
 }
@@ -345,23 +359,17 @@ private fun ProfileDetailsSection(
         SectionCard(
             title = "Profile Details",
             icon = Icons.Filled.Badge,
-            actionText = if (showDetails) "Hide Details" else "Show Details",
+            actionText = if (showDetails) "Hide" else "Show",
             onActionClick = onToggleDetails
         ) {
             if (showDetails) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    EnhancedDetailRow(Icons.Filled.Business, "Company", user.company)
-                    EnhancedDetailRow(Icons.Filled.Place, "Location", user.location)
-                    EnhancedDetailRow(Icons.Filled.Email, "Email", user.email, isLink = true)
-                    EnhancedDetailRow(Icons.Filled.AlternateEmail, "Twitter", user.twitterUsername?.let { "@$it" })
+                    DetailRow(Icons.Filled.Business, "Company", user.company)
+                    DetailRow(Icons.Filled.Place, "Location", user.location)
+                    DetailRow(Icons.Filled.Email, "Email", user.email, isLink = true)
+                    DetailRow(Icons.Filled.AlternateEmail, "Twitter", user.twitterUsername?.let { "@$it" })
                 }
             } else {
-                Text(
-                    text = "Tap to view detailed profile information",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
             }
         }
     } else {
@@ -379,25 +387,143 @@ private fun ProfileDetailsSection(
     }
 }
 
+
+
 @Composable
-private fun GitHubLinksSection(user: com.example.github_user_search_app.data.model.User) {
+private fun RepositoriesSection(
+    user: com.example.github_user_search_app.data.model.User,
+    showRepositories: Boolean,
+    onToggleRepositories: () -> Unit,
+    viewModel: UserDetailViewModel
+) {
+    val state = viewModel.state
+    
+    LaunchedEffect(showRepositories) {
+        if (showRepositories && state.repositories.isEmpty()) {
+            viewModel.loadRepositories(user.login)
+        }
+    }
+    
     SectionCard(
-        title = "GitHub Links",
-        icon = Icons.Filled.Link
+        title = "Repositories",
+        icon = Icons.Filled.Star,
+        actionText = if (showRepositories) "Hide" else "Show",
+        onActionClick = onToggleRepositories
     ) {
-        val context = LocalContext.current
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            EnhancedLinkItem(Icons.Filled.Star, "Repositories", "${user.publicRepos ?: 0} repositories") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(user.reposUrl)))
+        if (showRepositories) {
+            when {
+                state.isLoadingRepositories -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color(0xFFE60000),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+                state.repositories.isNotEmpty() -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Repository count info
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Showing ${state.repositories.size} of ${user.publicRepos ?: 0} repositories",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF666666)
+                            )
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        state.repositories.forEach { repository ->
+                            RepositoryItem(repository = repository)
+                        }
+                        
+                        if (state.hasMoreRepositories) {
+                            Spacer(Modifier.height(8.dp))
+                            ShowMoreButton(
+                                isLoading = state.isLoadingMoreRepositories,
+                                onClick = { viewModel.loadMoreRepositories(user.login) }
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    Text(
+                        text = "No repositories found",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
             }
-            EnhancedLinkItem(Icons.Filled.People, "Followers", "${user.followers ?: 0} followers") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(user.followersUrl)))
-            }
-            EnhancedLinkItem(Icons.Filled.PersonAdd, "Following", "${user.following ?: 0} following") {
+        } else {
+            // No content when repositories are hidden - card will be minimal height
+        }
+    }
+}
+
+@Composable
+private fun GitHubButton(user: com.example.github_user_search_app.data.model.User) {
+    val context = LocalContext.current
+    val voisGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFFE60000),
+            Color(0xFFD81B60),
+            Color(0xFF7B1FA2)
+        )
+    )
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(user.htmlUrl)))
             }
-            EnhancedLinkItem(Icons.Filled.Link, "View on GitHub", "github.com/${user.login}") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(user.htmlUrl)))
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = Color(0xFFE60000).copy(alpha = 0.3f)
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(voisGradient)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Filled.Link,
+                    contentDescription = "GitHub",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "View Profile on GitHub",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                )
             }
         }
     }
@@ -466,7 +592,7 @@ private fun SectionCard(
 }
 
 @Composable
-private fun EnhancedStatItem(
+private fun StatItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: String,
     label: String
@@ -496,7 +622,7 @@ private fun EnhancedStatItem(
 }
 
 @Composable
-private fun EnhancedDetailRow(
+private fun DetailRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String?,
@@ -604,6 +730,215 @@ private fun EnhancedLinkItem(
                 tint = Color(0xFFE60000),
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun RepositoryItem(repository: com.example.github_user_search_app.data.model.Repository) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repository.htmlUrl)))
+            }
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                spotColor = Color(0xFFE60000).copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Repository name and language
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = repository.name,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color(0xFF2C2C2C),
+                    modifier = Modifier.weight(1f)
+                )
+                
+                if (repository.language != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFE60000).copy(alpha = 0.1f)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = repository.language,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color(0xFFE60000),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+            
+            // Description
+            if (!repository.description.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = repository.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF666666),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            // Repository stats
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = "Stars",
+                        tint = Color(0xFFE60000),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${repository.stargazersCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF666666)
+                    )
+                }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.ForkRight,
+                        contentDescription = "Forks",
+                        tint = Color(0xFFE60000),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${repository.forksCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF666666)
+                    )
+                }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Visibility,
+                        contentDescription = "Watchers",
+                        tint = Color(0xFFE60000),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${repository.watchersCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF666666)
+                    )
+                }
+            }
+            
+            // Last updated
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Updated ${repository.updatedAt}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF999999)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShowMoreButton(
+    isLoading: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isLoading, onClick = onClick)
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                spotColor = Color(0xFFE60000).copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isLoading) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFFE60000),
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "Loading more repositories...",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = Color(0xFF666666)
+                    )
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Filled.ExpandMore,
+                        contentDescription = "Show More",
+                        tint = Color(0xFFE60000),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Show More Repositories",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = Color(0xFFE60000)
+                    )
+                }
+            }
         }
     }
 }

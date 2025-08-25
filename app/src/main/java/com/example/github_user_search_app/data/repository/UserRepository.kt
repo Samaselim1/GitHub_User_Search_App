@@ -2,6 +2,7 @@ package com.example.github_user_search_app.data.repository
 
 import com.example.github_user_search_app.data.model.SearchResult
 import com.example.github_user_search_app.data.model.User
+import com.example.github_user_search_app.data.model.Repository
 import com.example.github_user_search_app.data.network.Api
 
 class UserRepository(private val api: Api) {
@@ -18,6 +19,15 @@ class UserRepository(private val api: Api) {
     suspend fun getUserDetail(username: String): Result<User> {
         return try {
             val response = api.getUserDetail(username)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getUserRepositories(username: String, page: Int = 1): Result<List<Repository>> {
+        return try {
+            val response = api.getUserRepositories(username, page = page)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
