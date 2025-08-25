@@ -15,6 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun SearchBar(
@@ -34,7 +40,7 @@ fun SearchBar(
             Icon(
                 Icons.Filled.Search, 
                 contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.primary
+                tint = Color(0xFFE60000)
             ) 
         },
         trailingIcon = {
@@ -43,7 +49,7 @@ fun SearchBar(
                     Icon(
                         Icons.Filled.Clear, 
                         contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = Color(0xFFE60000)
                     )
                 }
             }
@@ -51,10 +57,10 @@ fun SearchBar(
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            focusedLabelColor = MaterialTheme.colorScheme.primary
+            focusedBorderColor = Color(0xFFE60000),
+            unfocusedBorderColor = Color(0xFFE60000),
+            cursorColor = Color(0xFFE60000)
         ),
-        shape = MaterialTheme.shapes.medium
+        shape = RoundedCornerShape(16.dp)
     )
 }
