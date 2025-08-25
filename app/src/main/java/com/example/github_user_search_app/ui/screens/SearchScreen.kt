@@ -99,7 +99,6 @@ fun SearchScreen(
 
             if (state.users.isNotEmpty()) {
                 Surface(
-//                    color = Color(0xFFE60000).copy(alpha = 0.1f),
                     shape = RoundedCornerShape(10.dp),
                     tonalElevation = 0.dp
                 ) {
@@ -114,17 +113,13 @@ fun SearchScreen(
                 }
                 Spacer(Modifier.height(8.dp))
             }
-
             when {
                 state.isLoading && state.users.isEmpty() -> {
                     LoadingState()
                 }
-
                 state.error != null -> {
                     ErrorState(message = state.error ?: "Unknown error")
                 }
-
-                // No Results after Search
                 state.users.isEmpty() && state.query.isNotEmpty() -> {
                     EmptyResultsState()
                 }
@@ -179,7 +174,6 @@ fun SearchScreen(
                                             )
                                         }
                                     }
-
                                     state.endReached -> {
                                         Surface(
                                             color = Color(0xFFE60000).copy(alpha = 0.1f),
@@ -202,8 +196,6 @@ fun SearchScreen(
                         }
                     }
                 }
-
-                // Default Initial State
                 else -> {
                     InitialState(voisGradient)
                 }
@@ -241,10 +233,10 @@ private fun ErrorState(message: String) {
             Icon(
                 Icons.Filled.Error,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp), // Larger icon
+                modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.error
             )
-            Spacer(Modifier.height(16.dp)) // Increased spacing
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = "Something went wrong",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -252,7 +244,7 @@ private fun ErrorState(message: String) {
                     color = MaterialTheme.colorScheme.error
                 )
             )
-            Spacer(Modifier.height(8.dp)) // Increased spacing
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -276,10 +268,10 @@ private fun EmptyResultsState() {
             Icon(
                 Icons.Filled.Search,
                 contentDescription = null,
-                modifier = Modifier.size(80.dp), // Even larger icon
+                modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp)) // Increased spacing
+            Spacer(Modifier.height(24.dp))
             Text(
                 text = "No users found",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -288,7 +280,7 @@ private fun EmptyResultsState() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
-            Spacer(Modifier.height(8.dp)) // Increased spacing
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "Try searching for a different username.",
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -313,7 +305,7 @@ private fun InitialState(gradient: Brush) {
                 modifier = Modifier.size(80.dp), // Even larger icon
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
-            Spacer(Modifier.height(24.dp)) // Increased spacing
+            Spacer(Modifier.height(24.dp))
             Text(
                 text = "Search for GitHub Users",
                 style = MaterialTheme.typography.titleLarge.copy(
@@ -322,7 +314,7 @@ private fun InitialState(gradient: Brush) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
-            Spacer(Modifier.height(8.dp)) // Increased spacing
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "Enter a username and tap search",
                 style = MaterialTheme.typography.bodyLarge.copy(
